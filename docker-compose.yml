@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  openclaw:
+    # Vanilla OpenClaw - nicht das Hostinger Image
+    image: openclaw/openclaw:latest
+    container_name: openclaw
+    init: true
+    ports:
+      - "${PORT:-61457}:${PORT:-61457}"
+    env_file:
+      - .env
+    restart: unless-stopped
+    volumes:
+      # Persistente Daten
+      - ./data/.openclaw:/data/.openclaw
+      - ./data/.cache:/data/.cache
+      - ./data/.npm:/data/.npm
+      - ./data/linuxbrew:/home/linuxbrew
+      # Docker Socket für Container-Management
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: >
+      openclaw gateway run 
+      --port ${PORT:-61457} 
+      --bind loopback
+    environment:
+      - NODE_ENV=production
+      - OPENCLAW_DATA_DIR=/data/.openclaw
+      - PORT=${PORT:-61457}
+    networks:
+      - openclaw-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${PORT:-61457}/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  openclaw-net:
+    driver: bridge
